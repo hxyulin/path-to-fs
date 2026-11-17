@@ -1,0 +1,17 @@
+FROM rust:1.100-slim-bookworm
+
+RUN rustup component add rustfmt clippy
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends fuse3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 tester \
+    && mkdir -p /workspace \
+    && chown tester:tester /workspace
+
+ENV CARGO_HOME=/home/tester/.cargo
+WORKDIR /workspace
+COPY --chown=tester:tester . .
+USER tester
+
+CMD ["bash", "-c", "cargo fmt --check && cargo clippy --locked --all-targets --all-features -- -D warnings && cargo test --locked -- --include-ignored && cargo doc --locked --no-deps && cargo install --path . --locked --bins --root /home/tester/.local"]
